@@ -14,6 +14,12 @@ class JobStatusColors(Enum):
     UNOPENED = 'black'
     OPENED = 'blue'
 
+#   Add QTableWidget using Designer Tool
+#   Copy code for Widget and replace TableView
+#   Populate values in Widget and test run
+
+#   Edit and add all other functions
+
 class PandasModel(QtCore.QAbstractTableModel): 
     def __init__(self, df = pd.DataFrame(), parent=None): 
         QtCore.QAbstractTableModel.__init__(self, parent=parent)
