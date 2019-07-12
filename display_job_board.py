@@ -35,15 +35,22 @@ class PandasModel(QtCore.QAbstractTableModel):
             except (IndexError, ):
                 return QtCore.QVariant()
 
-    def data(self, index, role=QtCore.Qt.DisplayRole):
-        if role != QtCore.Qt.DisplayRole:
+    def data(self, index, role):
+        if role not in [QtCore.Qt.DisplayRole, QtCore.Qt.BackgroundColorRole]:
             return QtCore.QVariant()
-#        elif role == QtCore.Qt.BackgroundRole:
+
+        if role == QtCore.Qt.BackgroundColorRole:
 #            if index.column() == 5:
+#                return QtGui.QColor(204,120,200)
+            if index.column() == 5 and str(index.data()) == JobStatus.UNOPENED.value:
+                return QtGui.QColor(204,120,200)
+                
 #                if index.row() == JobStatus.OPENED.value:
-#                    return QtGui.QBrush(QtCore.Qt.green)
+##                    return QtGui.QBrush(QtCore.Qt.green)
+#                    return QtCore.Qt.green
 #                elif index.row() == JobStatus.UNOPENED.value:
-#                    return QtGui.QBrush(QtCore.Qt.red)
+##                    return QtGui.QBrush(QtCore.Qt.red)
+#                    return QtCore.Qt.red
             
         if not index.isValid():
             return QtCore.QVariant()
@@ -165,7 +172,8 @@ class Ui_MainWindow(object):
         self.job_table_view.setSelectionBehavior(1)
 #        self.job_table_view.horizontalHeader().setStretchLastSection(True)
         
-        self.job_table_view.doubleClicked.connect(self.open_job_link)    
+        self.job_table_view.doubleClicked.connect(self.open_job_link) 
+        self.job_table_view.setItemDelegate
         
     def open_job_link(self, model_index):
         print("\nTable Double Clicked\n")
@@ -173,9 +181,11 @@ class Ui_MainWindow(object):
         print(model_index.row())
         print(model_index.column())
         print(model_index.data())
+        
         if model_index.column() == 2:
 #            QtGui.QDesktopServices.openUrl(QtCore.QUrl("https://www.indeed.com" + model_index.data()))
             self.job_table_view.model().set_data(model_index.row(), 5, JobStatus.OPENED.value)
+            
             
 
     def retranslateUi(self, MainWindow):
