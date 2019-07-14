@@ -24,9 +24,9 @@ class Ui_MainWindow(object):
         self.refresh_board_btn.setGeometry(QtCore.QRect(230, 540, 131, 23))
         self.refresh_board_btn.setAutoFillBackground(False)
         self.refresh_board_btn.setObjectName("refresh_board_btn")
-        self.savecancel_board_btn = QtWidgets.QPushButton(self.centralwidget)
-        self.savecancel_board_btn.setGeometry(QtCore.QRect(360, 540, 141, 23))
-        self.savecancel_board_btn.setObjectName("savecancel_board_btn")
+        self.save_board_btn = QtWidgets.QPushButton(self.centralwidget)
+        self.save_board_btn.setGeometry(QtCore.QRect(360, 540, 141, 23))
+        self.save_board_btn.setObjectName("savecancel_board_btn")
         
         self.job_table_widget = QtWidgets.QTableWidget(self.centralwidget)
         self.job_table_widget.setGeometry(QtCore.QRect(10, 0, 781, 531))
@@ -66,6 +66,7 @@ class Ui_MainWindow(object):
         
         ### Code
         self.refresh_board_btn.clicked.connect(self.refresh_job_board)
+        self.save_board_btn.clicked.connect(self.save_job_results)
         
         self.scrape_all_pages.setChecked(True)
         self.num_pages_to_scrape.setEnabled(False)
@@ -97,7 +98,7 @@ class Ui_MainWindow(object):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "Job Board"))
         self.refresh_board_btn.setText(_translate("MainWindow", "Refresh Board"))
-        self.savecancel_board_btn.setText(_translate("MainWindow", "Save and Cancel"))
+        self.save_board_btn.setText(_translate("MainWindow", "Save Results"))
         self.scrape_all_pages.setText(_translate("MainWindow", "Scrape all pages"))
         self.page_desc_label.setText(_translate("MainWindow", "Scrape all pages"))
     
@@ -142,6 +143,21 @@ class Ui_MainWindow(object):
         self.page_desc_label.setText("Scrape " + str(self.num_pages_to_scrape.value()) + " page/s")
     
  
+    def save_job_results(self):
+        print("Saving Results")
+        job_results_list = {'TITLE' : [], 'COMPANY' : [], 'LINK' : [], 'JD' : [], 'RELEVANCE' : [], 'STATUS' : []}
+        for row in range(self.job_table_widget.rowCount()):
+            job_results_list['TITLE'].append(self.job_table_widget.item(row, 0).text())
+            job_results_list['COMPANY'].append(self.job_table_widget.item(row, 1).text())
+            job_results_list['LINK'].append(self.job_table_widget.item(row, 2).text())
+            job_results_list['JD'].append(self.job_table_widget.item(row, 3).text())
+            job_results_list['RELEVANCE'].append(int(self.job_table_widget.item(row, 4).text()))
+            job_results_list['STATUS'].append(self.job_table_widget.item(row, 5).text())
+                
+        job_results_df = pd.DataFrame(job_results_list, index = range(len(job_results_list['TITLE'])))
+        job_results_df.to_pickle("./data/job_results.pkl")
+        print("Results Saved!")
+         
     
 if __name__ == "__main__":
     
