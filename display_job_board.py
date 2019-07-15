@@ -10,12 +10,14 @@ class JobStatus(Enum):
     NEW = 'New'
     OPENED = 'Opened'
     OPENED_SIMILAR = 'Similar was opened'
+    APPLIED = 'Applied'
     
 @unique
 class JobStatusColors(Enum):
     NEW = '#ffffcc'
     OPENED = '#ff9478'
     OPENED_SIMILAR = '#f64747'
+    APPLIED = '#4daf7c'
 
 class Ui_MainWindow(object):
     
@@ -77,6 +79,34 @@ class Ui_MainWindow(object):
         self.num_pages_to_scrape.sliderMoved.connect(self.update_page_desc)
         self.job_table_widget.itemDoubleClicked.connect(self.open_job_link)
         
+        # Adding Context Menu
+        self.job_table_widget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.job_table_widget.customContextMenuRequested.connect(self.show_context_menu)
+        
+    def show_context_menu(self, position):
+        right_clicked_item = self.job_table_widget.itemAt(position)
+        if right_clicked_item.column() != 5:
+            return(False)
+        
+        status_context_menu = QtWidgets.QMenu()
+        to_applied_action = status_context_menu.addAction(JobStatus.APPLIED.value)
+        to_opened_action = status_context_menu.addAction(JobStatus.OPENED.value)
+        to_unopened_action = status_context_menu.addAction(JobStatus.NEW.value)
+        status_context_menu.setTitle("Modify status")
+        action = status_context_menu.exec_(self.job_table_widget.mapToGlobal(position))
+        
+        if action in [to_applied_action, to_opened_action, to_unopened_action]:
+            self.change_status(right_clicked_item.row(), JobStatus[JobStatus(action.text()).name])
+            
+            
+    
+    def change_status(self, row, status = JobStatus):
+        self.job_table_widget.setItem(row, 5, QtWidgets.QTableWidgetItem(status.value))
+        self.color_row(row, QtGui.QColor(JobStatusColors[status.name].value))
+        
+                
+        
+        
     
     def color_row(self, row_index, color = QtGui.QColor):
         for col_index in range(self.job_table_widget.columnCount()):
@@ -91,7 +121,7 @@ class Ui_MainWindow(object):
     def open_job_link(self, item):
         print("\nTable Double Clicked\n")
         if item.column() == 2:
-            QtGui.QDesktopServices.openUrl(QtCore.QUrl("https://www.indeed.com" + item.text()))
+#            QtGui.QDesktopServices.openUrl(QtCore.QUrl("https://www.indeed.com" + item.text()))
             self.job_table_widget.setItem(item.row(), 5, QtWidgets.QTableWidgetItem(JobStatus.OPENED.value))
             self.color_row(item.row(), QtGui.QColor(JobStatusColors.OPENED.value))
             self.save_job_results()
