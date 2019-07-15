@@ -11,6 +11,7 @@ class JobStatus(Enum):
     OPENED = 'Opened'
     OPENED_SIMILAR = 'Similar was opened'
     APPLIED = 'Applied'
+    APPLIED_SIMILAR = 'Similar was Applied'
     
 @unique
 class JobStatusColors(Enum):
@@ -18,6 +19,7 @@ class JobStatusColors(Enum):
     OPENED = '#ff9478'
     OPENED_SIMILAR = '#f64747'
     APPLIED = '#4daf7c'
+    APPLIED_SIMILAR = '#36d7b7'
 
 class Ui_MainWindow(object):
     
@@ -103,6 +105,7 @@ class Ui_MainWindow(object):
     def change_status(self, row, status = JobStatus):
         self.job_table_widget.setItem(row, 5, QtWidgets.QTableWidgetItem(status.value))
         self.color_row(row, QtGui.QColor(JobStatusColors[status.name].value))
+        self.save_job_results()
         
                 
         
@@ -151,7 +154,7 @@ class Ui_MainWindow(object):
         if(os.path.exists(self.results_save_path)):
             
             results_archive_df = pd.read_pickle(self.results_save_path)
-            opened_results_df = results_archive_df[results_archive_df['STATUS'] == JobStatus.OPENED.value]
+            opened_results_df = results_archive_df[results_archive_df['STATUS'].isin([JobStatus.OPENED.value, JobStatus.APPLIED.value])]
             
     #        for job_index in range(len(job_df.index)):
     #            for open_index in range(len(opened_results_df.index)):
@@ -161,6 +164,7 @@ class Ui_MainWindow(object):
             
             job_df = pd.merge(job_df, opened_results_df[['TITLE', 'COMPANY', 'STATUS']], how = 'left', on = ['COMPANY', 'TITLE'], suffixes = ('', '_Y'))
             job_df.loc[job_df['STATUS_Y'] == JobStatus.OPENED.value, 'STATUS'] = JobStatus.OPENED_SIMILAR.value
+            job_df.loc[job_df['STATUS_Y'] == JobStatus.APPLIED.value, 'STATUS'] = JobStatus.APPLIED_SIMILAR.value
             job_df.drop('STATUS_Y', 1, inplace = True)
 
        
