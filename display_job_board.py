@@ -3,6 +3,7 @@ import sys
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pandas as pd
 from enum import Enum, unique
+import os
 
 @unique
 class JobStatus(Enum):
@@ -17,6 +18,9 @@ class JobStatusColors(Enum):
     OPENED_SIMILAR = '#f64747'
 
 class Ui_MainWindow(object):
+    
+    results_save_path = './data/job_results.pkl'
+    
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(800, 646)
@@ -26,9 +30,6 @@ class Ui_MainWindow(object):
         self.refresh_board_btn.setGeometry(QtCore.QRect(230, 540, 131, 23))
         self.refresh_board_btn.setAutoFillBackground(False)
         self.refresh_board_btn.setObjectName("refresh_board_btn")
-        self.save_board_btn = QtWidgets.QPushButton(self.centralwidget)
-        self.save_board_btn.setGeometry(QtCore.QRect(360, 540, 141, 23))
-        self.save_board_btn.setObjectName("savecancel_board_btn")
         
         self.job_table_widget = QtWidgets.QTableWidget(self.centralwidget)
         self.job_table_widget.setGeometry(QtCore.QRect(10, 0, 781, 531))
@@ -68,8 +69,7 @@ class Ui_MainWindow(object):
         
         ### Code
         self.refresh_board_btn.clicked.connect(self.refresh_job_board)
-        self.save_board_btn.clicked.connect(self.save_job_results)
-        
+                
         self.scrape_all_pages.setChecked(True)
         self.num_pages_to_scrape.setEnabled(False)
         self.scrape_all_pages.toggled.connect(self.toggle_page_field)
@@ -94,13 +94,13 @@ class Ui_MainWindow(object):
             QtGui.QDesktopServices.openUrl(QtCore.QUrl("https://www.indeed.com" + item.text()))
             self.job_table_widget.setItem(item.row(), 5, QtWidgets.QTableWidgetItem(JobStatus.OPENED.value))
             self.color_row(item.row(), QtGui.QColor(JobStatusColors.OPENED.value))
+            self.save_job_results()
    
     
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "Job Board"))
         self.refresh_board_btn.setText(_translate("MainWindow", "Refresh Board"))
-        self.save_board_btn.setText(_translate("MainWindow", "Save Results"))
         self.scrape_all_pages.setText(_translate("MainWindow", "Scrape all pages"))
         self.page_desc_label.setText(_translate("MainWindow", "Scrape all pages"))
     
@@ -118,18 +118,20 @@ class Ui_MainWindow(object):
         job_df['STATUS'] = [JobStatus.NEW.value for i in range(len(job_df.index))]
         
         # Loading saved results file and comparing to change statuses
-        results_archive_df = pd.read_pickle('./data/job_results.pkl')
-        opened_results_df = results_archive_df[results_archive_df['STATUS'] == JobStatus.OPENED.value]
-        
-#        for job_index in range(len(job_df.index)):
-#            for open_index in range(len(opened_results_df.index)):
-#                if job_df.iloc[job_index]['JD'] == opened_results_df.iloc[open_index]['JD']:
-#                    job_df.at[job_index, 'STATUS'] = JobStatus.OPENED.value
-#                    break
-        
-        job_df = pd.merge(job_df, opened_results_df[['TITLE', 'COMPANY', 'STATUS']], how = 'left', on = ['COMPANY', 'TITLE'], suffixes = ('', '_Y'))
-        job_df.loc[job_df['STATUS_Y'] == JobStatus.OPENED.value, 'STATUS'] = JobStatus.OPENED_SIMILAR.value
-        job_df.drop('STATUS_Y', 1, inplace = True)
+        if(os.path.exists(self.results_save_path)):
+            
+            results_archive_df = pd.read_pickle(self.results_save_path)
+            opened_results_df = results_archive_df[results_archive_df['STATUS'] == JobStatus.OPENED.value]
+            
+    #        for job_index in range(len(job_df.index)):
+    #            for open_index in range(len(opened_results_df.index)):
+    #                if job_df.iloc[job_index]['JD'] == opened_results_df.iloc[open_index]['JD']:
+    #                    job_df.at[job_index, 'STATUS'] = JobStatus.OPENED.value
+    #                    break
+            
+            job_df = pd.merge(job_df, opened_results_df[['TITLE', 'COMPANY', 'STATUS']], how = 'left', on = ['COMPANY', 'TITLE'], suffixes = ('', '_Y'))
+            job_df.loc[job_df['STATUS_Y'] == JobStatus.OPENED.value, 'STATUS'] = JobStatus.OPENED_SIMILAR.value
+            job_df.drop('STATUS_Y', 1, inplace = True)
 
        
         # Loading the QTableWidget
@@ -149,6 +151,7 @@ class Ui_MainWindow(object):
         
         self.refresh_status_colors()
         self.refresh_board_btn.setEnabled(True)
+        self.save_job_results()
         
     
     def toggle_page_field(self):
@@ -176,7 +179,7 @@ class Ui_MainWindow(object):
                 
         job_results_df = pd.DataFrame(job_results_list, index = range(len(job_results_list['TITLE'])))
         job_results_df.loc[job_results_df['STATUS'] == JobStatus.OPENED_SIMILAR.value, 'STATUS'] = JobStatus.OPENED.value
-        job_results_df.to_pickle("./data/job_results.pkl")
+        job_results_df.to_pickle(self.results_save_path)
         print("Results Saved!")
          
     
