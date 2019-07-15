@@ -6,13 +6,15 @@ from enum import Enum, unique
 
 @unique
 class JobStatus(Enum):
-    UNOPENED = 'UNOPENED'
-    OPENED = 'OPENED'
+    NEW = 'New'
+    OPENED = 'Opened'
+    OPENED_SIMILAR = 'Similar was opened'
     
 @unique
 class JobStatusColors(Enum):
-    UNOPENED = '#ffffcc'
+    NEW = '#ffffcc'
     OPENED = '#ff9478'
+    OPENED_SIMILAR = '#f64747'
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -113,13 +115,28 @@ class Ui_MainWindow(object):
         else:
             job_df = scraper.scrape_jobs(int(self.num_pages_to_scrape.value()))
         
-        job_df['STATUS'] = [JobStatus.UNOPENED.value for i in range(len(job_df.index))]
+        job_df['STATUS'] = [JobStatus.NEW.value for i in range(len(job_df.index))]
         
+        # Loading saved results file and comparing to change statuses
+        results_archive_df = pd.read_pickle('./data/job_results.pkl')
+        opened_results_df = results_archive_df[results_archive_df['STATUS'] == JobStatus.OPENED.value]
+        
+#        for job_index in range(len(job_df.index)):
+#            for open_index in range(len(opened_results_df.index)):
+#                if job_df.iloc[job_index]['JD'] == opened_results_df.iloc[open_index]['JD']:
+#                    job_df.at[job_index, 'STATUS'] = JobStatus.OPENED.value
+#                    break
+        
+        job_df = pd.merge(job_df, opened_results_df[['TITLE', 'COMPANY', 'STATUS']], how = 'left', on = ['COMPANY', 'TITLE'], suffixes = ('', '_Y'))
+        job_df.loc[job_df['STATUS_Y'] == JobStatus.OPENED.value, 'STATUS'] = JobStatus.OPENED_SIMILAR.value
+        job_df.drop('STATUS_Y', 1, inplace = True)
+
+       
+        # Loading the QTableWidget
         row_count = len(job_df.index)
         col_count = len(job_df.columns)
         self.job_table_widget.setRowCount(row_count)
         self.job_table_widget.setColumnCount(col_count)
-        
         col_names = job_df.columns
         for col_index in range(col_count):
             self.job_table_widget.setHorizontalHeaderItem(col_index, QtWidgets.QTableWidgetItem(col_names[col_index]))
@@ -127,9 +144,12 @@ class Ui_MainWindow(object):
         for row_index in range(row_count):
             for col_index in range(col_count):
                 self.job_table_widget.setItem(row_index, col_index, QtWidgets.QTableWidgetItem(str(job_df.ix[row_index, col_index])))
+        
+        
+        
         self.refresh_status_colors()
         self.refresh_board_btn.setEnabled(True)
-
+        
     
     def toggle_page_field(self):
         self.num_pages_to_scrape.setEnabled(not self.scrape_all_pages.isChecked())
@@ -155,6 +175,7 @@ class Ui_MainWindow(object):
             job_results_list['STATUS'].append(self.job_table_widget.item(row, 5).text())
                 
         job_results_df = pd.DataFrame(job_results_list, index = range(len(job_results_list['TITLE'])))
+        job_results_df.loc[job_results_df['STATUS'] == JobStatus.OPENED_SIMILAR.value, 'STATUS'] = JobStatus.OPENED.value
         job_results_df.to_pickle("./data/job_results.pkl")
         print("Results Saved!")
          
